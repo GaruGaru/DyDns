@@ -1,0 +1,25 @@
+FROM golang:1.10 AS build
+
+RUN mkdir -p $GOPATH/src/github.com/GaruGaru/DyDns
+ADD . $GOPATH/src/github.com/GaruGaru/DyDns
+WORKDIR $GOPATH/src/github.com/GaruGaru/DyDns
+RUN go get -u github.com/golang/dep/cmd/dep
+RUN dep ensure -vendor-only
+
+RUN CGO_ENABLED=0 go build -o dydns -ldflags="-s -w" dydns.go
+RUN cp dydns /
+
+FROM alpine
+
+RUN apk update
+RUN apk upgrade
+RUN apk add ca-certificates && update-ca-certificates
+RUN apk add --update tzdata
+RUN rm -rf /var/cache/apk/*
+
+COPY --from=build /dydns /home/
+
+RUN ln -s /home/dydns /usr/bin/dydns
+
+WORKDIR /home
+ENTRYPOINT ./dydns

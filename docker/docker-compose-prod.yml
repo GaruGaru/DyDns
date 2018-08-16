@@ -1,0 +1,7 @@
+version: "3.3"
+services:
+  DyDns:
+    image: garugaru/dydns
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.prod
