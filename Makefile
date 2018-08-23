@@ -37,7 +37,7 @@ docker-build-dev:
 
 .PHONY: docker-build-prod
 docker-build-prod:
-	docker-compose -f ${DEV_COMPOSE} build
+	docker-compose -f ${PROD_COMPOSE} build
 
 
 .PHONY: docker-up
@@ -48,7 +48,3 @@ docker-up:
 .PHONY: docker-down
 docker-down:
 	docker-compose -f ${DEV_COMPOSE} down
-
-
-
-

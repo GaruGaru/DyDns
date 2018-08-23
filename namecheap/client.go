@@ -6,11 +6,18 @@ import (
 	"time"
 )
 
-type DnsOptions struct {
+type NamecheapOptions struct {
 	Host     string
-	Domain   string
+	Domains  []string
 	Password string
-	IP       string
+}
+
+type DnsUpdateResult struct {
+	Host    string
+	Domain  string
+	IP      string
+	Status  string
+	Success bool
 }
 
 func NewDnsClient() DnsClient {
@@ -25,31 +32,47 @@ type DnsClient struct {
 	httpClient http.Client
 }
 
-func createUpdateRequest(options DnsOptions) string {
+func createUpdateRequest(host string, domain string, password string, ip string) string {
 	return fmt.Sprintf(
 		"https://dynamicdns.park-your-domain.com/update?host=%s&domain=%s&password=%s&ip=%s",
-		options.Host,
-		options.Domain,
-		options.Password,
-		options.IP,
+		host,
+		domain,
+		password,
+		ip,
 	)
 }
 
-func (c DnsClient) Update(options DnsOptions) error {
+func (c DnsClient) Update(options NamecheapOptions, ip string) ([]DnsUpdateResult) {
 
-	url := createUpdateRequest(options)
+	results := make([]DnsUpdateResult, len(options.Domains))
 
-	resp, err := c.httpClient.Get(url)
+	for _, domain := range options.Domains {
 
-	if err != nil {
-		return err
+		url := createUpdateRequest(options.Host, domain, options.Password, ip)
+
+		resp, err := c.httpClient.Get(url)
+
+		if err != nil {
+			results = append(results, DnsUpdateResult{
+				Host:    options.Host,
+				Domain:  domain,
+				IP:      ip,
+				Status:  err.Error(),
+				Success: false,
+			})
+		}
+
+		if resp.StatusCode != 200 {
+			results = append(results, DnsUpdateResult{
+				Host:    options.Host,
+				Domain:  domain,
+				Status:  fmt.Sprintf("Unexpected status code %d", resp.StatusCode),
+				Success: false,
+			})
+		}
+
+		resp.Body.Close()
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("unexpected status code %d", resp.StatusCode)
-	}
-
-	return nil
+	return results
 }

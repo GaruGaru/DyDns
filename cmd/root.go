@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"time"
+	"strings"
 )
 
 func init() {
@@ -33,34 +34,40 @@ var rootCmd = &cobra.Command{
 	Short: "DyDns is a lightweight dynamic dns client",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		for {
+		ipProvider := ip.Providers(
+			ip.NewPlainIPProvider("https://api.ipify.org/"),
+			ip.NewPlainIPProvider("http://myexternalip.com/raw"),
+		)
 
-			ipProvider := ip.Providers(
-				ip.NewPlainIPProvider("https://api.ipify.org/"),
-				ip.NewPlainIPProvider("http://myexternalip.com/raw"),
-			)
+		options := namecheap.NamecheapOptions{
+			Host:     viper.GetString("host"),
+			Domains:  strings.Split(viper.GetString("domain"), ","),
+			Password: viper.GetString("password"),
+		}
+
+		dnsClient := namecheap.NewDnsClient()
+
+		for {
 
 			externalIP, err := ipProvider.ExternalIP()
 
 			if err != nil {
 				fmt.Println(err.Error())
+				continue
 			}
 
-			options := namecheap.DnsOptions{
-				Host:     viper.GetString("host"),
-				Domain:   viper.GetString("domain"),
-				Password: viper.GetString("password"),
-				IP:       externalIP,
+			updateResults := dnsClient.Update(options, externalIP)
+
+			if len(updateResults) == 0{
+				fmt.Println("No update results.")
 			}
 
-			dnsClient := namecheap.NewDnsClient()
-
-			updateErr := dnsClient.Update(options)
-
-			if updateErr == nil {
-				fmt.Printf("[OK] %s.%s -> %s\n", options.Host, options.Domain, options.IP)
-			} else {
-				fmt.Println(updateErr.Error())
+			for _, result := range updateResults {
+				if result.Success {
+					fmt.Printf("[OK] Updated %s (%s): %s", result.Host, result.Domain, result.IP)
+				} else {
+					fmt.Printf("Error updating %s (%s): %s", result.Host, result.Domain, result.Status)
+				}
 			}
 
 			time.Sleep(time.Duration(viper.GetInt("delay")) * time.Minute)
