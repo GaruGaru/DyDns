@@ -11,13 +11,13 @@ go get github.com/GaruGaru/DyDns
 ### Usage 
 
 ```bash
-dydns --domain=<domain> --host=<entry> --password=<dynamic_dns_psw> --delay=<update_delay_min>  
+dydns --domain=<domain> --entries=<entry>,<entry2> --password=<dynamic_dns_psw> --delay=<update_delay_min>
 ```
  
 ### Docker 
 
 ```bash
-docker run -e "DOMAIN=<domain>" -e "HOST=<entry>" -e "PASSWORD=<dynamic_dns_psw>" garugaru/dydns
+docker run -e "DOMAIN=<domain>" -e "ENTRIES=<entry>,<entry2>" -e "PASSWORD=<dynamic_dns_psw>" garugaru/dydns
 ```
 
 
