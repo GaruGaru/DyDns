@@ -11,8 +11,8 @@ import (
 )
 
 func init() {
-	rootCmd.Flags().String("host", "", "Dns entry name")
-	rootCmd.Flags().String("domain", "", "Domain name")
+	rootCmd.Flags().String("hosts", "", "Dns entry name")
+	rootCmd.Flags().String("domain", "", "Entries name")
 	rootCmd.Flags().String("password", "", "Dynamic dns password")
 	rootCmd.Flags().Int("delay", 60, "Dynamic dns password")
 	viper.BindPFlags(rootCmd.Flags())
@@ -21,7 +21,7 @@ func init() {
 }
 
 func validateFields() {
-	mandatoryFields := []string{"host", "domain", "password"}
+	mandatoryFields := []string{"entries", "domain", "password"}
 	for _, field := range mandatoryFields {
 		if viper.GetString(field) == "" {
 			panic(fmt.Sprintf("Error field %s not provided or empty", field))
@@ -40,16 +40,16 @@ var rootCmd = &cobra.Command{
 		)
 
 		options := namecheap.NamecheapOptions{
-			Host:     viper.GetString("host"),
-			Domains:  strings.Split(viper.GetString("domain"), ","),
+			Domain:   viper.GetString("domain"),
+			Entries:  strings.Split(viper.GetString("entries"), ","),
 			Password: viper.GetString("password"),
 		}
 
 		dnsClient := namecheap.NewDnsClient()
 
-		fmt.Printf("Starting dydns on domain %s with %d records\n", options.Host, len(options.Domains))
+		fmt.Printf("Starting dydns on domain %s with %d entries\n", options.Domain, len(options.Entries))
 
-		for {
+		for ; ; {
 
 			externalIP, err := ipProvider.ExternalIP()
 
@@ -68,9 +68,9 @@ var rootCmd = &cobra.Command{
 
 			for _, result := range updateResults {
 				if result.Success {
-					fmt.Printf("[OK] Updated %s (%s): %s", result.Host, result.Domain, result.IP)
+					fmt.Printf("[OK] Updated %s (%s): %s\n", result.Entry, result.Domain, result.IP)
 				} else {
-					fmt.Printf("Error updating %s (%s): %s", result.Host, result.Domain, result.Status)
+					fmt.Printf("Error updating %s (%s): %s\n", result.Entry, result.Domain, result.Status)
 				}
 			}
 

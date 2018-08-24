@@ -7,13 +7,13 @@ import (
 )
 
 type NamecheapOptions struct {
-	Host     string
-	Domains  []string
+	Domain   string
+	Entries  []string
 	Password string
 }
 
 type DnsUpdateResult struct {
-	Host    string
+	Entry   string
 	Domain  string
 	IP      string
 	Status  string
@@ -32,11 +32,11 @@ type DnsClient struct {
 	httpClient http.Client
 }
 
-func createUpdateRequest(host string, domain string, password string, ip string) string {
+func createUpdateRequest(domain string, entry string, password string, ip string) string {
 	return fmt.Sprintf(
-		"https://dynamicdns.park-your-domain.com/update?host=%s&domain=%s&password=%s&ip=%s",
-		host,
+		"https://dynamicdns.park-your-domain.com/update?domain=%s&host=%s&password=%s&ip=%s",
 		domain,
+		entry,
 		password,
 		ip,
 	)
@@ -44,31 +44,40 @@ func createUpdateRequest(host string, domain string, password string, ip string)
 
 func (c DnsClient) Update(options NamecheapOptions, ip string) ([]DnsUpdateResult) {
 
-	results := make([]DnsUpdateResult, len(options.Domains))
+	results := make([]DnsUpdateResult, len(options.Entries))
 
-	for _, domain := range options.Domains {
+	for i, entry := range options.Entries {
 
-		url := createUpdateRequest(options.Host, domain, options.Password, ip)
+		url := createUpdateRequest(options.Domain, entry, options.Password, ip)
 
 		resp, err := c.httpClient.Get(url)
 
 		if err != nil {
-			results = append(results, DnsUpdateResult{
-				Host:    options.Host,
-				Domain:  domain,
+			results[i] = DnsUpdateResult{
+				Entry:   entry,
+				Domain:  options.Domain,
 				IP:      ip,
 				Status:  err.Error(),
 				Success: false,
-			})
+			}
+			continue
 		}
 
 		if resp.StatusCode != 200 {
-			results = append(results, DnsUpdateResult{
-				Host:    options.Host,
-				Domain:  domain,
+			results[i] = DnsUpdateResult{
+				Entry:   entry,
+				Domain:  options.Domain,
 				Status:  fmt.Sprintf("Unexpected status code %d", resp.StatusCode),
 				Success: false,
-			})
+			}
+		} else {
+			results[i] = DnsUpdateResult{
+				Entry:   entry,
+				Domain:  options.Domain,
+				Status:  "OK",
+				Success: true,
+				IP:      ip,
+			}
 		}
 
 		resp.Body.Close()
