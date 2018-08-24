@@ -47,9 +47,13 @@ var rootCmd = &cobra.Command{
 
 		dnsClient := namecheap.NewDnsClient()
 
+		fmt.Printf("Starting dydns on domain %s with %d records\n", options.Host, len(options.Domains))
+
 		for {
 
 			externalIP, err := ipProvider.ExternalIP()
+
+			fmt.Println("Got ip: " + externalIP)
 
 			if err != nil {
 				fmt.Println(err.Error())
@@ -58,7 +62,7 @@ var rootCmd = &cobra.Command{
 
 			updateResults := dnsClient.Update(options, externalIP)
 
-			if len(updateResults) == 0{
+			if len(updateResults) == 0 {
 				fmt.Println("No update results.")
 			}
 
