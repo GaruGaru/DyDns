@@ -15,14 +15,12 @@ type Options struct {
 
 func NewDnsClient() *DnsClient {
 	return &DnsClient{
-		httpClient: &http.Client{
-			Timeout: time.Second * 10,
-		},
+		client: &http.Client{Timeout: time.Second * 15},
 	}
 }
 
 type DnsClient struct {
-	httpClient *http.Client
+	client *http.Client
 }
 
 func (c *DnsClient) Update(ctx context.Context, options Options, ip string) error {
@@ -40,7 +38,7 @@ func (c *DnsClient) Update(ctx context.Context, options Options, ip string) erro
 			return err
 		}
 
-		resp, err := c.httpClient.Do(req)
+		resp, err := c.client.Do(req)
 
 		if err != nil {
 			return err
@@ -50,7 +48,7 @@ func (c *DnsClient) Update(ctx context.Context, options Options, ip string) erro
 		if resp.StatusCode != http.StatusOK {
 			return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 		}
-
 	}
+
 	return nil
 }
