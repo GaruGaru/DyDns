@@ -3,35 +3,43 @@ package ip
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
 func Providers(providers ...Provider) Provider {
-	return ProvidersManager{
+	return MultiProvider{
 		Providers: providers,
 	}
 }
 
-type ProvidersManager struct {
+type MultiProvider struct {
 	Providers []Provider
 }
 
-func (p ProvidersManager) IP(ctx context.Context) (string, error) {
+func (p MultiProvider) IP(ctx context.Context) (string, error) {
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).
+		With().
+		Ctx(ctx).
+		Timestamp().
+		Logger()
+
 	for _, provider := range p.Providers {
 		ip, err := provider.IP(ctx)
 		if err == nil {
 			return ip, nil
 		} else {
-			fmt.Printf("provider %s not working: %s\n", provider.Name(), err.Error())
+			logger.Warn().Err(err).Msgf("failed to get ip from %s", provider.Name())
 		}
 	}
 
 	return "", fmt.Errorf("no working provider")
 }
 
-func (p ProvidersManager) Name() string {
+func (p MultiProvider) Name() string {
 	return "providers-manager"
 }
 

@@ -92,6 +92,7 @@ func main() {
 					logger.Warn().Err(err).Msg("error updating DNS record")
 					continue
 				}
+				logger.Info().Msgf("updated %d DNS record", len(options.Entries))
 			}
 		}
 	}()
