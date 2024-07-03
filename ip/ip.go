@@ -1,8 +1,9 @@
 package ip
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -17,10 +18,9 @@ type ProvidersManager struct {
 	Providers []Provider
 }
 
-func (p ProvidersManager) ExternalIP() (string, error) {
-
+func (p ProvidersManager) IP(ctx context.Context) (string, error) {
 	for _, provider := range p.Providers {
-		ip, err := provider.ExternalIP()
+		ip, err := provider.IP(ctx)
 		if err == nil {
 			return ip, nil
 		} else {
@@ -36,14 +36,14 @@ func (p ProvidersManager) Name() string {
 }
 
 type Provider interface {
-	ExternalIP() (string, error)
+	IP(context.Context) (string, error)
 	Name() string
 }
 
 func NewPlainIPProvider(url string) Provider {
 	return PlainIPProvider{
 		client: http.Client{
-			Timeout: time.Second * 10,
+			Timeout: time.Second * 15,
 		},
 		url: url,
 	}
@@ -54,28 +54,30 @@ type PlainIPProvider struct {
 	client http.Client
 }
 
-func (p PlainIPProvider) ExternalIP() (string, error) {
+func (p PlainIPProvider) IP(ctx context.Context) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.url, nil)
+	if err != nil {
+		return "", err
+	}
 
-	resp, err := p.client.Get(p.url)
+	resp, err := p.client.Do(req)
 
 	if err != nil {
 		return "", err
 	}
+
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("unexpected status code %d", resp.StatusCode)
 	}
 
-	defer resp.Body.Close()
-
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	bodyString := string(bodyBytes)
-
-	return bodyString, nil
+	return string(body), nil
 }
 
 func (p PlainIPProvider) Name() string {

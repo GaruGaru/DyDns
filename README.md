@@ -5,7 +5,6 @@
 
 ```bash
 go get github.com/GaruGaru/DyDns
-
 ```
 
 ### Usage 
